@@ -50,28 +50,32 @@ public class PersonMenu {
         return num;
     }
 
-    // Fungsi helper yang membantu melakukan escape character pada query SQL. Karakter yang di-escape adalah ' dan \, karena
+    // Fungsi helper statis yang membantu melakukan escape character pada query SQL. Karakter yang di-escape adalah ' dan \, karena
     // kedua karakter tersebut dapat mengacaukan query juga pemrosesan String di Java
     public static String escChar(String str) {
         return str.replace("\\", "\\\\").replace("'", "\\'");
     }
 
     public PersonMenu() {
+        // Inisialisasi objek kelas Database
         database = new Database();
 
         peopleTable.setModel(setTable());
         titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20f));
         titleLabel.setText("Combatant List");
 
+        // Isi opsi pada combo box Kategori
         String[] categories = {"---", "Saber", "Lancer", "Archer", "Rider", "Caster", "Assassin", "Berserker"};
         categoryComboBox.setModel(new DefaultComboBoxModel<>(categories));
+        // Atur batasan pada slider Level
         levelSlider.setMinimum(1);
         levelSlider.setMaximum(100);
         levelSlider.setValue(1);
         levelSliderCurLabel.setText("1");
-
+        // Di awal-awal, karena belum ada item yang terpilih, hilangkan tombol hapus
         deleteButton.setVisible(false);
 
+        // LIstener berikut akan menampilkan nilai dari slider Level secara langsung tiap ada perubahan
         levelSlider.addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
@@ -80,6 +84,7 @@ public class PersonMenu {
                 }
             }
         });
+        // Listener berikut mengatur apakah operasi yang hendak di eksekusi merupakan inesrt atau update
         addUpdateButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -90,6 +95,7 @@ public class PersonMenu {
                 }
             }
         });
+        // Listener berikut menampilkan konfirmasi terlebih dulu sebelum menghapus data
         deleteButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -98,12 +104,14 @@ public class PersonMenu {
                 }
             }
         });
+        // Listener berikut melakukan 'pembersihan' form ketika tombol cancel ditekan
         cancelButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 clearForm();
             }
         });
+        // Listener berikut mengambil data pada tabel tiap ada baris yang ditekan, baik untuk diubah maupun untuk dihapus
         peopleTable.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -130,6 +138,7 @@ public class PersonMenu {
 
     public final DefaultTableModel setTable() {
         Object[] cols = {"No", "ID", "Nama", "Tahun Lahir", "Kategori", "Level"};
+        // Ada tambahan override function disini agar tabel tidak dapat diubah langsung oleh user ketika ditekan salah satu cell-nya
         DefaultTableModel temp = new DefaultTableModel(null, cols) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -138,9 +147,11 @@ public class PersonMenu {
         };
 
         try {
+            // Query untuk mengambil semua data
             ResultSet r_s = database.selectQuery("SELECT * FROM person");
             int i = 0;
 
+            // Loop untuk menampilkan menyusun tiap record data menjadi baris tabel
             while(r_s.next()) {
                 Object[] row = new Object[6];
 
@@ -162,6 +173,8 @@ public class PersonMenu {
     }
 
     public void insertData() {
+        // Error handling diatur dengan e_msg, dimana program akan melempar ILlegalArgumentException jika ada aturan yang
+        // dilanggar, sekaligus mengisi e_msg dengan keterangan error yang sesuai.
         String e_msg = "";
 
         try {
@@ -171,6 +184,7 @@ public class PersonMenu {
                 throw new IllegalArgumentException();
             } else {
                 try {
+                    // Pastikan ID tidak duplikat
                     ResultSet r_s = database.selectQuery("SELECT * FROM person WHERE id = '" + id + "'");
 
                     if(r_s.next()) {
@@ -196,6 +210,8 @@ public class PersonMenu {
 
             String category = categoryComboBox.getSelectedItem().toString();
             if(categoryComboBox.getSelectedIndex() == 0) {
+                // Indeks 0 di combo box Kategori merupakan opsi default (---), dan karena Kategori tidak boleh kosong, input
+                // opsi 0 tidak diperbolehkan karena sama saja dengan kosong
                 e_msg = "Pilih kategori!";
                 throw new IllegalArgumentException();
             }
@@ -217,6 +233,7 @@ public class PersonMenu {
     }
 
     public void updateData() {
+        // Error handling serta aturan input pada operasi update sama seperti yang ada di operasi insert
         String e_msg = "";
 
         try {
@@ -225,6 +242,8 @@ public class PersonMenu {
                 e_msg = "ID tidak boleh kosong!";
                 throw new IllegalArgumentException();
             } else if(!id.equals(selectedId)) {
+                // Jika ID masih sama seperti di awal (tidak dirubah), maka pengecekan dibawah tidak dilakukan karena MySQL
+                // memperbolehkan untuk SET ke ID yang sama dengan saat sebelum diubah
                 try {
                     ResultSet r_s = database.selectQuery("SELECT * FROM person WHERE id = '" + id + "'");
 
@@ -272,6 +291,7 @@ public class PersonMenu {
     }
 
     public void deleteData() {
+        // Query untuk hapus data
         String query = "DELETE FROM person WHERE id = '" + selectedId + "'";
         database.insertUpdateDeleteQuery(query);
         peopleTable.setModel(setTable());
@@ -283,12 +303,14 @@ public class PersonMenu {
     }
 
     public void clearForm() {
+        // Bersihkan seluruh input form
         idField.setText("");
         nameField.setText("");
         birthYearField.setText("");
         categoryComboBox.setSelectedIndex(0);
         levelSlider.setValue(1);
 
+        // Atur komponen-komponen operasi pada aturan semula
         addUpdateButton.setText("Add");
         deleteButton.setVisible(false);
         selectedIndex = -1;

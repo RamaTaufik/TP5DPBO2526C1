@@ -6,6 +6,7 @@ public class Database {
 
     public Database() {
         try {
+            // Ubah bagian ini jika ada konfigurasi MySQL yang berbeda/ingin menggunakan user lain
             connection = DriverManager.getConnection(
                 "jdbc:mysql://localhost: 3306/db_people",
                 "root",

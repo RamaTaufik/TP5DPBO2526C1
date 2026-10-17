@@ -23,7 +23,7 @@
           <grid row="4" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <text value="ID"/>
+          <text value="ID*"/>
         </properties>
       </component>
       <component id="d1bf9" class="javax.swing.JTextField" binding="idField">
@@ -39,7 +39,7 @@
           <grid row="5" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <text value="Name"/>
+          <text value="Name*"/>
         </properties>
       </component>
       <component id="771b0" class="javax.swing.JTextField" binding="nameField">
@@ -71,7 +71,7 @@
           <grid row="7" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <text value="Kategori Kelas"/>
+          <text value="Kategori Kelas*"/>
         </properties>
       </component>
       <component id="e67cb" class="javax.swing.JComboBox" binding="categoryComboBox">
@@ -85,7 +85,7 @@
           <grid row="8" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
         </constraints>
         <properties>
-          <text value="Level"/>
+          <text value="Level*"/>
         </properties>
       </component>
       <component id="f12bd" class="javax.swing.JSlider" binding="levelSlider">

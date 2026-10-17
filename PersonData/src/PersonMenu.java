@@ -7,7 +7,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
+import java.sql.*;
 
 public class PersonMenu {
     private JPanel mainPanel;
@@ -29,7 +29,8 @@ public class PersonMenu {
     private JLabel levelSliderCurLabel;
 
     private int selectedIndex = -1;
-    private ArrayList<Person> listPeople;
+    private String selectedId = null;
+    private Database database;
 
     // Fungsi helper statis untuk merubah string menjadi integer sekaligus memastikan input hanya merupakan bilangan
     // bulat positif
@@ -49,10 +50,14 @@ public class PersonMenu {
         return num;
     }
 
-    public PersonMenu() {
-        listPeople = new ArrayList<>();
+    // Fungsi helper yang membantu melakukan escape character pada query SQL. Karakter yang di-escape adalah ' dan \, karena
+    // kedua karakter tersebut dapat mengacaukan query juga pemrosesan String di Java
+    public static String escChar(String str) {
+        return str.replace("\\", "\\\\").replace("'", "\\'");
+    }
 
-        populateList();
+    public PersonMenu() {
+        database = new Database();
 
         peopleTable.setModel(setTable());
         titleLabel.setFont(titleLabel.getFont().deriveFont(Font.BOLD, 20f));
@@ -105,6 +110,7 @@ public class PersonMenu {
                 selectedIndex = peopleTable.getSelectedRow();
 
                 String curId = peopleTable.getModel().getValueAt(selectedIndex, 1).toString();
+                selectedId = escChar(curId);
                 String curName = peopleTable.getModel().getValueAt(selectedIndex, 2).toString();
                 String curBirthY = peopleTable.getModel().getValueAt(selectedIndex, 3).toString();
                 String curCategory = peopleTable.getModel().getValueAt(selectedIndex, 4).toString();
@@ -131,16 +137,25 @@ public class PersonMenu {
             }
         };
 
-        for(int i = 0; i < listPeople.size(); i++) {
-            Object[] row = {
-                    i + 1,
-                    listPeople.get(i).getId(),
-                    listPeople.get(i).getName(),
-                    listPeople.get(i).getBirthYear(),
-                    listPeople.get(i).getCategory(),
-                    listPeople.get(i).getLevel()
-            };
-            temp.addRow(row);
+        try {
+            ResultSet r_s = database.selectQuery("SELECT * FROM person");
+            int i = 0;
+
+            while(r_s.next()) {
+                Object[] row = new Object[6];
+
+                row[0] = i + 1;
+                row[1] = r_s.getString("id");
+                row[2] = r_s.getString("name");
+                row[3] = r_s.getString("birth_y");
+                row[4] = r_s.getString("category");
+                row[5] = r_s.getString("level");
+                temp.addRow(row);
+
+                i++;
+            }
+        } catch(SQLException e) {
+            throw new RuntimeException(e);
         }
 
         return temp;
@@ -150,34 +165,51 @@ public class PersonMenu {
         String e_msg = "";
 
         try {
-            String id = idField.getText();
+            String id = escChar(idField.getText());
             if(id.isBlank()) {
                 e_msg = "ID tidak boleh kosong!";
                 throw new IllegalArgumentException();
+            } else {
+                try {
+                    ResultSet r_s = database.selectQuery("SELECT * FROM person WHERE id = '" + id + "'");
+
+                    if(r_s.next()) {
+                        e_msg = "ID " + id + " sudah ada!";
+                        throw new IllegalArgumentException();
+                    }
+                } catch(SQLException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
-            String name = nameField.getText();
+            String name = escChar(nameField.getText());
             if(name.isBlank()) {
                 e_msg = "Nama tidak boleh kosong!";
                 throw new IllegalArgumentException();
             }
 
             int birth_y = cstrtoint(birthYearField.getText().trim());
-            if(birth_y == -1) {
+            if(birth_y < 0) {
                 e_msg = "Tahun lahir harus berupa bilangan bulat positif!";
                 throw new IllegalArgumentException();
             }
 
             String category = categoryComboBox.getSelectedItem().toString();
+            if(categoryComboBox.getSelectedIndex() == 0) {
+                e_msg = "Pilih kategori!";
+                throw new IllegalArgumentException();
+            }
 
             int level = levelSlider.getValue();
 
-            listPeople.add(new Person(id, name, birth_y, category, level));
+            String query = "INSERT INTO person VALUE('" + id + "', '" + name + "', " + birth_y + ", '" + category + "', " + level + ")";
+            database.insertUpdateDeleteQuery(query);
+
             peopleTable.setModel(setTable());
 
             clearForm();
 
-            System.out.println("Inserted successfully");
+            System.out.println("ID " + selectedId + " inserted successfully");
             JOptionPane.showMessageDialog(null, "Data berhasil ditambahkan");
         } catch(IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(null, e_msg, "Error", JOptionPane.ERROR_MESSAGE);
@@ -188,38 +220,51 @@ public class PersonMenu {
         String e_msg = "";
 
         try {
-            String id = idField.getText();
+            String id = escChar(idField.getText());
             if(id.isBlank()) {
                 e_msg = "ID tidak boleh kosong!";
                 throw new IllegalArgumentException();
+            } else if(!id.equals(selectedId)) {
+                try {
+                    ResultSet r_s = database.selectQuery("SELECT * FROM person WHERE id = '" + id + "'");
+
+                    if(r_s.next()) {
+                        e_msg = "ID sudah ada!";
+                        throw new IllegalArgumentException();
+                    }
+                } catch(SQLException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
-            String name = nameField.getText();
+            String name = escChar(nameField.getText());
             if(name.isBlank()) {
                 e_msg = "Nama tidak boleh kosong!";
                 throw new IllegalArgumentException();
             }
 
             int birth_y = cstrtoint(birthYearField.getText().trim());
-            if(birth_y == -1) {
+            if(birth_y < 0) {
                 e_msg = "Tahun lahir harus berupa bilangan bulat positif!";
                 throw new IllegalArgumentException();
             }
 
             String category = categoryComboBox.getSelectedItem().toString();
+            if(categoryComboBox.getSelectedIndex() == 0) {
+                e_msg = "Pilih kategori!";
+                throw new IllegalArgumentException();
+            }
 
             int level = levelSlider.getValue();
 
-            listPeople.get(selectedIndex).setId(id);
-            listPeople.get(selectedIndex).setName(name);
-            listPeople.get(selectedIndex).setBirthYear(birth_y);
-            listPeople.get(selectedIndex).setCategory(category);
-            listPeople.get(selectedIndex).setLevel(level);
+            String query = "UPDATE person SET id = '" + id + "', name = '" + name + "', birth_y = " + birth_y + ", category = '" + category + "', level = " + level + " WHERE id = '" + selectedId + "'";
+            database.insertUpdateDeleteQuery(query);
+
             peopleTable.setModel(setTable());
 
             clearForm();
 
-            System.out.println("Updated successfully");
+            System.out.println("ID \" + selectedId + \" updated successfully");
             JOptionPane.showMessageDialog(null, "Data berhasil diubah");
         } catch(IllegalArgumentException ex) {
             JOptionPane.showMessageDialog(null, e_msg, "Error", JOptionPane.ERROR_MESSAGE);
@@ -227,12 +272,13 @@ public class PersonMenu {
     }
 
     public void deleteData() {
-        listPeople.remove(selectedIndex);
+        String query = "DELETE FROM person WHERE id = '" + selectedId + "'";
+        database.insertUpdateDeleteQuery(query);
         peopleTable.setModel(setTable());
 
         clearForm();
 
-        System.out.println("Deleted successfully");
+        System.out.println("ID \" + selectedId + \" deleted successfully");
         JOptionPane.showMessageDialog(null, "Data berhasil dihapus");
     }
 
@@ -246,16 +292,7 @@ public class PersonMenu {
         addUpdateButton.setText("Add");
         deleteButton.setVisible(false);
         selectedIndex = -1;
-    }
-
-    public void populateList() {
-        listPeople.add(new Person("SBR-001", "Lord Logres", 480, "Saber", 90));
-        listPeople.add(new Person("ARC-001", "Super Orion", 1200, "Archer", 89));
-        listPeople.add(new Person("LNC-001", "Romulus-Quirinus", 753, "Lancer", 75));
-        listPeople.add(new Person("RDR-001", "Noah", 450, "Rider", 80));
-        listPeople.add(new Person("CST-001", "King Solomon", 970, "Caster", 90));
-        listPeople.add(new Person("ASS-001", "Hassan-i Sabbah", 1050, "Assassin", 90));
-        listPeople.add(new Person("BRK-001", "Hercules", 2010, "Berserker", 80));
+        selectedId = null;
     }
 
     static void main(String[] args) {
